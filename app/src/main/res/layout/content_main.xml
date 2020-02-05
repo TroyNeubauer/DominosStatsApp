@@ -9,12 +9,93 @@
     tools:showIn="@layout/activity_main">
 
     <TextView
+        android:id="@+id/status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginTop="8dp"
+        android:text="Session Not Active"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/change_session_status"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="30dp"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="30dp"
+        android:layout_marginRight="30dp"
+        android:text="Start"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/status" />
+
+    <EditText
+        android:id="@+id/latitude"
+        android:layout_width="92dp"
+        android:layout_height="46dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginRight="4dp"
+        android:ems="10"
+        android:hint="Latitude"
+        android:inputType="numberDecimal"
+        app:layout_constraintEnd_toStartOf="@+id/fill_location_button"
+        app:layout_constraintStart_toStartOf="@+id/change_session_status"
+        app:layout_constraintTop_toBottomOf="@+id/change_session_status" />
+
+    <EditText
+        android:id="@+id/longitude"
+        android:layout_width="97dp"
+        android:layout_height="47dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginTop="8dp"
+        android:ems="10"
+        android:hint="Longitude"
+        android:inputType="numberDecimal"
+        app:layout_constraintEnd_toEndOf="@+id/change_session_status"
+        app:layout_constraintStart_toEndOf="@+id/fill_location_button"
+        app:layout_constraintTop_toBottomOf="@+id/change_session_status" />
+
+    <Button
+        android:id="@+id/fill_location_button"
+        android:layout_width="89dp"
+        android:layout_height="42dp"
+        android:layout_marginTop="8dp"
+        android:text="Fill"
+        android:onClick="gpsFill"
+        app:layout_constraintEnd_toEndOf="@+id/change_session_status"
+        app:layout_constraintStart_toStartOf="@+id/change_session_status"
+        app:layout_constraintTop_toBottomOf="@+id/change_session_status" />
+
+    <RadioGroup
+        android:layout_width="147dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="@+id/latitude"
+        app:layout_constraintTop_toBottomOf="@+id/latitude">
+
+        <RadioButton
+            android:id="@+id/radioButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Man"
+            tools:layout_editor_absoluteX="28dp"
+            tools:layout_editor_absoluteY="145dp" />
+
+        <RadioButton
+            android:id="@+id/radioButton2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Woman"
+            tools:layout_editor_absoluteX="147dp"
+            tools:layout_editor_absoluteY="149dp" />
+
+    </RadioGroup>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
