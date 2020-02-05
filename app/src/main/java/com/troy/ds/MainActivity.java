@@ -1,10 +1,7 @@
 package com.troy.ds;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,10 +16,14 @@ import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.Toast;
 
+
+
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity
 {
+
+	private GPSTracker gps;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -31,6 +32,12 @@ public class MainActivity extends AppCompatActivity
 		setContentView(R.layout.activity_main);
 		Toolbar toolbar = findViewById(R.id.toolbar);
 		setSupportActionBar(toolbar);
+
+		gps = new GPSTracker(this);
+
+		if (!gps.canGetLocation()) {
+			gps.showSettingsAlert();
+		}
 
 	}
 
@@ -59,8 +66,8 @@ public class MainActivity extends AppCompatActivity
 		return super.onOptionsItemSelected(item);
 	}
 
-	private static final int GPS_REQ_CODE = 0;
-	private static final String TAG = "dominos";
+	public static final int GPS_REQ_CODE = 0;
+	public static final String TAG = "dominos";
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -77,15 +84,15 @@ public class MainActivity extends AppCompatActivity
 
 	public void gpsFillImpl()
 	{
-		LocationManager lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
-		try
-		{
-			if (lm == null) throw new NullPointerException();
-			Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-			if (location == null) throw new NullPointerException();
 
+		if (gps.canGetLocation()) {
 			((EditText) findViewById(R.id.latitude)).setText(String.format(Locale.getDefault(), "%f", location.getLongitude()));
 			((EditText) findViewById(R.id.longitude)).setText(String.format(Locale.getDefault(), "%f", location.getLatitude()));
+		}
+		else
+		{
+
+
 		}
 		catch (NullPointerException e)
 		{
@@ -93,7 +100,7 @@ public class MainActivity extends AppCompatActivity
 		}
 		catch (SecurityException e)
 		{
-			Toast.makeText(this, "Permissions failed. Code logic error", Toast.LENGTH_SHORT).show();
+
 		}
 
 	}
@@ -109,7 +116,11 @@ public class MainActivity extends AppCompatActivity
 		{
 			gpsFillImpl();
 		}
-
-
 	}
+
+	public void startClicked(View view)
+	{
+	}
+
+
 }
