@@ -1,147 +1,91 @@
 package com.troy.ds;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+
+import java.util.ArrayList;
+
+import static com.troy.ds.MainActivity.TAG;
 
 public class GPSTracker extends Service implements LocationListener {
 
-	private final Context mContext;
-	private final Activity mActivity;
-
 	// flag for GPS status
-	boolean isGPSEnabled = false;
-
-	// flag for network status
-	boolean isNetworkEnabled = false;
-
-	// flag for GPS status
-	boolean hasLocationProvider = false;
-	boolean hasPermissions = false;
+	private ArrayList<String> providers = null;
 
 	Location location; // location
-
-	// The minimum distance to change Updates in meters
-	private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
-
-	// The minimum time between updates in milliseconds
-	private static final long MIN_TIME_BW_UPDATES = 500; // 0.5 seconds
 
 	// Declaring a Location Manager
 	protected LocationManager locationManager;
 
-	public GPSTracker(Context context, Activity activity) {
-		this.mContext = context;
-		this.mActivity = activity;
-		initLocationUpdates();
-	}
-
-	public void initLocationUpdates()
+	public GPSTracker()
 	{
-		locationManager = (LocationManager) mContext.getSystemService(LOCATION_SERVICE);
-		if (locationManager == null)
-		{
-			Toast.makeText(this, "Failed to get location service provider!", Toast.LENGTH_LONG).show();
-			return;
-		}
+	}
 
-		// getting GPS status
-		isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
 
-		// getting network status
-		isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
-		if (!isGPSEnabled && !isNetworkEnabled)
-		{
-			Toast.makeText(this, "No GPS providers enabled! No GPS and no Cellular", Toast.LENGTH_LONG).show();
-			return;
-		}
-		if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId)
+	{
+		return START_STICKY;
+	}
 
-			this.hasPermissions = true;
-			// First get location from Network Provider
-			if (isNetworkEnabled) {
-				this.hasLocationProvider = true;
-				locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, MIN_TIME_BW_UPDATES, MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-				Log.d(MainActivity.TAG, "Network");
-				location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-				if (location != null) {
-					Toast.makeText(this, "Failed to get initial wifi location", Toast.LENGTH_LONG).show();
-				}
-			}
-			// if GPS Enabled get lat/long using GPS Services
-			if (isGPSEnabled) {
-				this.hasLocationProvider = true;
-				if (location == null) {
-					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_TIME_BW_UPDATES, MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-					Log.d(MainActivity.TAG, "GPS Enabled");
-					location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-					if (location != null) {
-						Toast.makeText(this, "Failed to get initial wifi location", Toast.LENGTH_LONG).show();
-					}
-				}
-			}
-		}
-		else
-		{
-			ActivityCompat.requestPermissions(mActivity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MainActivity.GPS_REQ_CODE);
-		}
+
+	@Override
+	public void onCreate()
+	{
+	}
+
+	@Override
+	public void onDestroy()
+	{
 
 	}
 
-	/**
-	 * Stop using GPS listener
-	 * Calling this function will stop using GPS in your app
-	 */
-	public void disableUpdates() {
-		if (locationManager != null) {
-			locationManager.removeUpdates(GPSTracker.this);
-		}
-	}
 
-	public double getLatitude() {
+	public double getLatitude()
+	{
 		return location.getLatitude();
 	}
 
-	public double getLongitude() {
+	public double getLongitude()
+	{
 		return location.getLongitude();
 	}
 
 
-	public boolean hasLocation() {
+	public boolean hasLocation()
+	{
 		return location != null;
 	}
 
-	public boolean isHasPermissions() {
-		return hasPermissions;
-	}
-
-	public void setHasLocationProvider(boolean hasLocationProvider) {
-		this.hasLocationProvider = hasLocationProvider;
+	public boolean hasProvider()
+	{
+		return providers.size() > 0;
 	}
 
 	/**
 	 * Function to show settings alert dialog
 	 * On pressing Settings button will lauch Settings Options
 	 */
-	public void showSettingsAlert() {
-		AlertDialog.Builder alertDialog = new AlertDialog.Builder(mContext);
+	public void showSettingsAlert(Context context) {
+		AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
 
 		// Setting Dialog Title
 		alertDialog.setTitle("GPS is settings");
@@ -150,15 +94,17 @@ public class GPSTracker extends Service implements LocationListener {
 		alertDialog.setMessage("GPS is not enabled. Do you want to go to settings menu?");
 
 		// On pressing Settings button
-		alertDialog.setPositiveButton("Settings", new DialogInterface.OnClickListener() {
+		alertDialog.setPositiveButton("Settings", new DialogInterface.OnClickListener()
+		{
 			public void onClick(DialogInterface dialog, int which) {
 				Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-				mContext.startActivity(intent);
+				startActivity(intent);
 			}
 		});
 
 		// on pressing cancel button
-		alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+		alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener()
+		{
 			public void onClick(DialogInterface dialog, int which) {
 				dialog.cancel();
 			}
@@ -169,23 +115,113 @@ public class GPSTracker extends Service implements LocationListener {
 	}
 
 	@Override
-	public void onLocationChanged(Location location) {
+	public void onLocationChanged(Location newLocation)
+	{
+		if (location == null || newLocation.getProvider().equals(LocationManager.GPS_PROVIDER))
+		{
+			this.location = newLocation;
+		}
 	}
 
 	@Override
-	public void onProviderDisabled(String provider) {
+	public void onProviderDisabled(String provider)
+	{
 	}
 
 	@Override
-	public void onProviderEnabled(String provider) {
+	public void onProviderEnabled(String provider)
+	{
 	}
 
 	@Override
-	public void onStatusChanged(String provider, int status, Bundle extras) {
+	public void onStatusChanged(String provider, int status, Bundle extras)
+	{
 	}
 
 	@Override
-	public IBinder onBind(Intent arg0) {
-		return null;
+	public IBinder onBind(Intent intent)
+	{
+		final GPSBinder binder = new GPSBinder(this);
+		new Thread(new Runnable() {
+			@Override
+			public void run()
+			{
+				while (binder.getActivity() == null)
+				{
+					try
+					{
+						Thread.sleep(10);
+					}
+					catch (InterruptedException e)
+					{
+
+					}
+				}
+				Log.i(TAG, "Service got MainActivity instance");
+				MainActivity activity = binder.getActivity();
+
+				if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+				{
+					Log.e(TAG, "Cannot run without fine location permissions!");
+					stopSelf();
+				}
+
+				locationManager = (LocationManager) activity.getSystemService(LOCATION_SERVICE);
+				if (locationManager == null)
+				{
+					Toast.makeText(activity, "Failed to get location service provider!", Toast.LENGTH_LONG).show();
+					Log.e(TAG, "Failed to get location service provider!");
+					stopSelf();
+				}
+
+				Criteria criteria = new Criteria();
+				criteria.setAccuracy(Criteria.ACCURACY_HIGH);
+				criteria.setAltitudeRequired(false);
+				criteria.setBearingRequired(false);
+				criteria.setCostAllowed(false);
+
+				String provider = locationManager.getBestProvider(criteria, true);
+				if (provider == null)
+				{
+					Toast.makeText(activity, "No GPS providers enabled! No GPS, Cellular or passive mode!", Toast.LENGTH_LONG).show();
+					Log.e(TAG, "No GPS providers enabled! No GPS, Cellular or passive mode!");
+					stopSelf();
+				}
+
+				locationManager.requestLocationUpdates(provider, 50, 1, GPSTracker.this);
+				location = locationManager.getLastKnownLocation(provider);
+				Log.i(TAG, "GPStracker initalization complete");
+			}
+		}, "GPS Tracker Init Thread").start();
+
+		return binder;
 	}
+
+	static class GPSBinder extends Binder
+	{
+		GPSBinder(GPSTracker obj)
+		{
+			this.obj = obj;
+		}
+
+		private GPSTracker obj;
+		private MainActivity activity;
+
+		GPSTracker getObj()
+		{
+			return obj;
+		}
+
+		MainActivity getActivity()
+		{
+			return activity;
+		}
+
+		void setActivity(MainActivity activity)
+		{
+			this.activity = activity;
+		}
+	}
+
+
 }
