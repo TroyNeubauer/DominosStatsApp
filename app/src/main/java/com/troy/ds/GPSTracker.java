@@ -15,6 +15,7 @@ import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
+import static android.location.Criteria.ACCURACY_HIGH;
 import static com.troy.ds.MainActivity.TAG;
 
 public class GPSTracker extends Service implements LocationListener {
@@ -144,57 +146,60 @@ public class GPSTracker extends Service implements LocationListener {
 		final GPSBinder binder = new GPSBinder(this);
 		new Thread(new Runnable() {
 			@Override
-			public void run()
-			{
-				while (binder.getActivity() == null)
-				{
-					try
-					{
+			public void run() {
+				//Looper.prepare();
+				while (binder.getActivity() == null) {
+					try {
 						Thread.sleep(10);
-					}
-					catch (InterruptedException e)
-					{
+					} catch (InterruptedException e) {
 
 					}
 				}
 				Log.i(TAG, "Service got MainActivity instance");
 				MainActivity activity = binder.getActivity();
 
-				if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-				{
+				if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 					Log.e(TAG, "Cannot run without fine location permissions!");
+					showSettingsAlert(activity);
 					stopSelf();
 				}
 
 				locationManager = (LocationManager) activity.getSystemService(LOCATION_SERVICE);
-				if (locationManager == null)
-				{
+				if (locationManager == null) {
 					Toast.makeText(activity, "Failed to get location service provider!", Toast.LENGTH_LONG).show();
 					Log.e(TAG, "Failed to get location service provider!");
 					stopSelf();
 				}
 
 				Criteria criteria = new Criteria();
-				criteria.setAccuracy(Criteria.ACCURACY_HIGH);
+				criteria.setAccuracy(Criteria.ACCURACY_FINE);
+				criteria.setHorizontalAccuracy(ACCURACY_HIGH);
 				criteria.setAltitudeRequired(false);
 				criteria.setBearingRequired(false);
 				criteria.setCostAllowed(false);
 
 				String provider = locationManager.getBestProvider(criteria, true);
-				if (provider == null)
-				{
+				if (provider == null) {
 					Toast.makeText(activity, "No GPS providers enabled! No GPS, Cellular or passive mode!", Toast.LENGTH_LONG).show();
 					Log.e(TAG, "No GPS providers enabled! No GPS, Cellular or passive mode!");
 					stopSelf();
 				}
 
-				locationManager.requestLocationUpdates(provider, 50, 1, GPSTracker.this);
+				locationManager.requestLocationUpdates(provider, 50, 1, GPSTracker.this, Looper.getMainLooper());
 				location = locationManager.getLastKnownLocation(provider);
 				Log.i(TAG, "GPStracker initalization complete");
+				//Looper.loop();
+				//Looper.myLooper().quitSafely();
 			}
 		}, "GPS Tracker Init Thread").start();
 
 		return binder;
+	}
+
+	@Override
+	public boolean onUnbind(Intent intent) {
+		Log.i(TAG, "Service unbound");
+		return false;
 	}
 
 	static class GPSBinder extends Binder

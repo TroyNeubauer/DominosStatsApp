@@ -121,7 +121,6 @@ public class MainActivity extends AppCompatActivity
 	{
 		Log.i(TAG, "Starting service");
 
-		startService(new Intent(getBaseContext(), GPSTracker.class));
 		bindService(new Intent(getBaseContext(), GPSTracker.class), new ServiceConnection()
 		{
 			@Override
@@ -142,7 +141,7 @@ public class MainActivity extends AppCompatActivity
 			{
 				stopService();
 			}
-		}, BIND_ABOVE_CLIENT);
+		}, BIND_AUTO_CREATE);
 
 	}
 
