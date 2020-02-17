@@ -13,7 +13,6 @@ public class Core
 		{
 			Kryo kryo = new Kryo();
 			kryo.register(DeliveryData.class);
-			kryo.register(DateTime.class);
 			kryo.register(PointData.class);
 			return kryo;
 		}

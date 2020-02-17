@@ -20,25 +20,42 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.esotericsoftware.kryo.io.Output;
+import com.troy.core.Core;
+import com.troy.core.DeliveryData;
+
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
+import org.joda.time.format.ISODateTimeFormat;
+
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity
 {
 
 	private GPSTracker gps;
+	private Output out;
 	public boolean running = true;
+
 
 	public static final File SAVE_DIR = new File(Environment.getExternalStorageDirectory(), "Dominos App");
 
 	public static final int ALL_REQ_CODE = 8000;
 
 	public static final String TAG = "dominos";
+
+	public static DateTimeFormatter DATE_TIME_FORMATTER = ISODateTimeFormat.dateTime();
 
 	private void requestPermissions(String... perms)
 	{
@@ -93,11 +110,69 @@ public class MainActivity extends AppCompatActivity
 			}
 		});
 
+		File outFile = new File(SAVE_DIR, "Deliveries-" + DATE_TIME_FORMATTER.print(DateTime.now()) + ".kryo");
+		try {
+			out = new Output(new FileOutputStream(outFile));
+		}
+		catch (IOException e)
+		{
+			throw new RuntimeException(e);
+		}
+
 	}
 
 	public void onSubmit(View view)
 	{
+		if (((EditText) findViewById(R.id.latitude)).getText().length() == 0)
+		{
+			Toast.makeText(this, "You must fill in latitude first!", Toast.LENGTH_SHORT).show();
+			return;
+		}
 
+		int checkedID = ((RadioGroup) findViewById(R.id.gender)).getCheckedRadioButtonId();
+		if (checkedID == -1)
+		{
+			Toast.makeText(this, "You must check a gender", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		if (((EditText) findViewById(R.id.total_cost)).getText().length() == 0)
+		{
+			Toast.makeText(this, "You must complete the order total first", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		if (((EditText) findViewById(R.id.tip)).getText().length() == 0)
+		{
+			Toast.makeText(this, "You must complete the tip box first", Toast.LENGTH_SHORT).show();
+			return;
+		}
+
+		DeliveryData data = new DeliveryData();
+		data.lat = Double.parseDouble(((EditText) findViewById(R.id.latitude)).getText().toString());
+		data.lng = Double.parseDouble(((EditText) findViewById(R.id.longitude)).getText().toString());
+
+		data.male = checkedID == R.id.male_check;
+
+		data.tip = Double.parseDouble(((EditText) findViewById(R.id.tip)).getText().toString());
+		data.orderTotal = Double.parseDouble(((EditText) findViewById(R.id.total_cost)).getText().toString());
+
+		data.age = ((SeekBar) findViewById(R.id.age)).getProgress();
+		data.time = DateTime.now();
+
+		Core.KRYO.get().writeClassAndObject(out, data);
+		Toast.makeText(this, "Saved data", Toast.LENGTH_SHORT).show();
+		out.flush();
+
+		((EditText) findViewById(R.id.latitude)).getText().clear();
+		((EditText) findViewById(R.id.longitude)).getText().clear();
+
+		((RadioGroup) findViewById(R.id.gender)).clearCheck();
+
+		((EditText) findViewById(R.id.tip)).getText().clear();
+		((EditText) findViewById(R.id.total_cost)).getText().clear();
+
+		((SeekBar) findViewById(R.id.age)).setProgress(100);
 	}
 
 	@Override
@@ -105,6 +180,10 @@ public class MainActivity extends AppCompatActivity
 	{
 		super.onDestroy();
 		Log.i(TAG, "On destroy called");
+
+		Log.i(TAG, "Closing file");
+		out.close();
+		stopService();
 	}
 
 	@Override
@@ -212,7 +291,7 @@ public class MainActivity extends AppCompatActivity
 		((TextView) findViewById(R.id.status)).setText("Session Not Active");
 		((Button) findViewById(R.id.change_session_status)).setText("Start");
 		gps = null;
-
+		finish();
 	}
 
 	private void showSessionNotActiveMessage()

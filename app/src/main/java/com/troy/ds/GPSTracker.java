@@ -32,6 +32,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import static com.troy.ds.MainActivity.SAVE_DIR;
 import static com.troy.ds.MainActivity.TAG;
 
 public class GPSTracker extends Service implements LocationListener {
@@ -39,7 +40,7 @@ public class GPSTracker extends Service implements LocationListener {
 	// flag for GPS status
 	private ArrayList<String> providers = new ArrayList<>();
 
-	Location location; // location
+	private volatile Location location; // location
 
 	// Declaring a Location Manager
 	protected LocationManager locationManager;
@@ -56,19 +57,21 @@ public class GPSTracker extends Service implements LocationListener {
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId)
 	{
-		return START_REDELIVER_INTENT;
+		return START_STICKY;
 	}
 
 
 	@Override
 	public void onCreate()
 	{
+		super.onCreate();
 	}
 
 	@Override
 	public void onDestroy()
 	{
 		cleanup();
+		super.onDestroy();
 	}
 
 
@@ -188,74 +191,36 @@ public class GPSTracker extends Service implements LocationListener {
 					stopSelf();
 				}
 
-				// getting GPS status
-				boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-
-				// getting network status
-				boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-				// First get location from Network Provider
-				if (isNetworkEnabled)
+				locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1.0f, GPSTracker.this);
+				providers.add(LocationManager.GPS_PROVIDER);
+				Log.d(TAG + GPSTracker.class.getName(), "GPS Enabled");
+				location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+				if (location != null)
 				{
-					locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 1.0f, GPSTracker.this);
-					providers.add(LocationManager.NETWORK_PROVIDER);
-					Log.d(MainActivity.TAG, "Network");
-					location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-					if (location != null)
-					{
-						Toast.makeText(activity, "Failed to get initial wifi location", Toast.LENGTH_LONG).show();
-					}
+					Toast.makeText(activity, "Failed to get initial wifi location", Toast.LENGTH_LONG).show();
 				}
-				// if GPS Enabled get lat/long using GPS Services
-				if (isGPSEnabled)
-				{
-					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 1.0f, GPSTracker.this);
-					providers.add(LocationManager.GPS_PROVIDER);
-					Log.d(MainActivity.TAG, "GPS Enabled");
-					location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-					if (location != null)
-					{
-						Toast.makeText(activity, "Failed to get initial wifi location", Toast.LENGTH_LONG).show();
-					}
 
-				}
-				Log.i(TAG, "GPStracker initalization complete. Using provider " + providers.toString());
-				while(running)
-				{
-					Log.i(TAG, "Looping...");
-					Looper.loop();
-				}
-				Looper.myLooper().quitSafely();
-				Log.i(TAG, "Loop end");
-				locationManager.requestLocationUpdates(provider, 50, 1, GPSTracker.this, Looper.getMainLooper());
-				location = locationManager.getLastKnownLocation(provider);
-
+				Log.i(TAG + GPSTracker.class.getName(), "GPStracker initalization complete. Using provider " + providers.toString());
 				trackerThread = new Thread(new Runnable()
 				{
 					@Override
 					public void run()
 					{
-						DateTimeFormatter formatter = DateTimeFormat.fullDateTime();
 						try
 						{
-							File outFile = new File( SAVE_DIR, "Pos-" + formatter.print(DateTime.now()));
+							File outFile = new File(SAVE_DIR, "Pos-" + MainActivity.DATE_TIME_FORMATTER.print(DateTime.now()) + ".kryo");
 							Output out = new Output(new FileOutputStream(outFile));
-							Log.i(TAG, "Opened GPS log file");
+							Log.i(TAG + GPSTracker.class.getName(), "Opened GPS log file");
 
-							int pointCount = 0;
 							while (running)
 							{
-								pointCount++;
 								PointData data = new PointData();
 								data.time = DateTime.now();
 								data.lat = getLatitude();
 								data.lng = getLongitude();
-								Core.KRYO.get().writeObject(out, data);
+								Core.KRYO.get().writeClassAndObject(out, data);
 
-								if (pointCount % 30 == 0)
-								{
-									out.flush();
-
-								}
+								out.flush();
 
 								final int updateFrequency = 5 * 1000;
 
@@ -274,7 +239,7 @@ public class GPSTracker extends Service implements LocationListener {
 									}
 								}
 							}
-							out.flush();
+							out.close();
 							Log.i(TAG + GPSTracker.class.getName(), "Saved GPS log file");
 
 						}
@@ -289,7 +254,15 @@ public class GPSTracker extends Service implements LocationListener {
 				});
 				trackerThread.start();
 
-				Log.i(TAG + GPSTracker.class.getName(), "GPStracker initalization complete");
+				while(running)
+				{
+					Log.i(TAG + GPSTracker.class.getName(), "Looping...");
+					Looper.loop();
+				}
+				Looper.myLooper().quitSafely();
+				Log.i(TAG + GPSTracker.class.getName(), "Loop end");
+
+
 			}
 		}, "GPS Tracker Init Thread").start();
 
@@ -305,6 +278,7 @@ public class GPSTracker extends Service implements LocationListener {
 
 	private void cleanup()
 	{
+		Log.i(TAG + GPSTracker.class.getName(), "claenup called");
 		running = false;
 		locationManager.removeUpdates(this);
 		try

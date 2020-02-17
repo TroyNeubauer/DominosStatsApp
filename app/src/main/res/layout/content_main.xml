@@ -74,7 +74,7 @@
         app:layout_constraintTop_toBottomOf="@+id/change_session_status" />
 
     <RadioGroup
-        android:id="@+id/radioGroup"
+        android:id="@+id/gender"
         android:layout_width="147dp"
         android:layout_height="30dp"
         android:layout_marginTop="16dp"
@@ -83,7 +83,7 @@
         app:layout_constraintTop_toBottomOf="@+id/latitude">
 
         <RadioButton
-            android:id="@+id/radioButton"
+            android:id="@+id/male_check"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Man"
@@ -91,7 +91,7 @@
             tools:layout_editor_absoluteY="145dp" />
 
         <RadioButton
-            android:id="@+id/radioButton2"
+            android:id="@+id/female_check"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Woman"
@@ -128,7 +128,7 @@
         android:layout_marginTop="24dp"
         android:text="Order Total"
         app:layout_constraintStart_toStartOf="@+id/change_session_status"
-        app:layout_constraintTop_toBottomOf="@+id/radioGroup" />
+        app:layout_constraintTop_toBottomOf="@+id/gender" />
 
     <TextView
         android:id="@+id/textView4"
