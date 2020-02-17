@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -33,13 +32,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import static android.location.Criteria.*;
-import static com.troy.ds.MainActivity.*;
+import static com.troy.ds.MainActivity.TAG;
 
 public class GPSTracker extends Service implements LocationListener {
 
 	// flag for GPS status
-	private ArrayList<String> providers = null;
+	private ArrayList<String> providers = new ArrayList<>();
 
 	Location location; // location
 
@@ -161,8 +159,12 @@ public class GPSTracker extends Service implements LocationListener {
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				while (binder.getActivity() == null) {
-					try {
+				Looper.prepare();
+
+				while (binder.getActivity() == null)
+				{
+					try
+					{
 						Thread.sleep(10);
 					} catch (InterruptedException e) {
 
@@ -171,33 +173,59 @@ public class GPSTracker extends Service implements LocationListener {
 				Log.i(TAG + GPSTracker.class.getName(), "Service got MainActivity instance");
 				final MainActivity activity = binder.getActivity();
 
-				if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-					Log.e(TAG + GPSTracker.class.getName(), "Cannot run without fine location permissions!");
+				if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+				{
+					Log.e(TAG, "Cannot run without fine location permissions!");
 					showSettingsAlert(activity);
 					stopSelf();
 				}
 
 				locationManager = (LocationManager) activity.getSystemService(LOCATION_SERVICE);
-				if (locationManager == null) {
+				if (locationManager == null)
+				{
 					Toast.makeText(activity, "Failed to get location service provider!", Toast.LENGTH_LONG).show();
 					Log.e(TAG + GPSTracker.class.getName(), "Failed to get location service provider!");
 					stopSelf();
 				}
 
-				Criteria criteria = new Criteria();
-				criteria.setAccuracy(Criteria.ACCURACY_FINE);
-				criteria.setHorizontalAccuracy(ACCURACY_HIGH);
-				criteria.setAltitudeRequired(false);
-				criteria.setBearingRequired(false);
-				criteria.setCostAllowed(false);
+				// getting GPS status
+				boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
 
-				String provider = locationManager.getBestProvider(criteria, true);
-				if (provider == null) {
-					Toast.makeText(activity, "No GPS providers enabled! No GPS, Cellular or passive mode!", Toast.LENGTH_LONG).show();
-					Log.e(TAG + GPSTracker.class.getName(), "No GPS providers enabled! No GPS, Cellular or passive mode!");
-					stopSelf();
+				// getting network status
+				boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+				// First get location from Network Provider
+				if (isNetworkEnabled)
+				{
+					locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 1.0f, GPSTracker.this);
+					providers.add(LocationManager.NETWORK_PROVIDER);
+					Log.d(MainActivity.TAG, "Network");
+					location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+					if (location != null)
+					{
+						Toast.makeText(activity, "Failed to get initial wifi location", Toast.LENGTH_LONG).show();
+					}
 				}
+				// if GPS Enabled get lat/long using GPS Services
+				if (isGPSEnabled)
+				{
+					locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 1.0f, GPSTracker.this);
+					providers.add(LocationManager.GPS_PROVIDER);
+					Log.d(MainActivity.TAG, "GPS Enabled");
+					location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+					if (location != null)
+					{
+						Toast.makeText(activity, "Failed to get initial wifi location", Toast.LENGTH_LONG).show();
+					}
 
+				}
+				Log.i(TAG, "GPStracker initalization complete. Using provider " + providers.toString());
+				while(running)
+				{
+					Log.i(TAG, "Looping...");
+					Looper.loop();
+				}
+				Looper.myLooper().quitSafely();
+				Log.i(TAG, "Loop end");
 				locationManager.requestLocationUpdates(provider, 50, 1, GPSTracker.this, Looper.getMainLooper());
 				location = locationManager.getLastKnownLocation(provider);
 
