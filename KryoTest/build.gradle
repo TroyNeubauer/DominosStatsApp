@@ -1,0 +1,12 @@
+apply plugin: 'java-library'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation group: 'com.esotericsoftware.kryo', name: 'kryo', version: '2.24.0'
+    implementation group: 'joda-time', name: 'joda-time', version: '2.10.5'
+    implementation project(path: ':Core')
+
+}
+
+sourceCompatibility = "7"
+targetCompatibility = "7"

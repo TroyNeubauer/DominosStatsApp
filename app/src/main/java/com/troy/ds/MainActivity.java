@@ -12,6 +12,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
@@ -23,27 +24,64 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-
+import java.io.File;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity
 {
 
 	private GPSTracker gps;
+	public boolean running = true;
+
+	public static final File SAVE_DIR = new File(Environment.getExternalStorageDirectory(), "Dominos App");
+
+	public static final int ALL_REQ_CODE = 8000;
+
+	public static final String TAG = "dominos";
+
+	private void requestPermissions(String... perms)
+	{
+		boolean request = false;
+		for (String perm : perms)
+		{
+			if (ContextCompat.checkSelfPermission(getBaseContext(), perm) != PackageManager.PERMISSION_GRANTED)
+			{
+				request = true;
+				break;
+			}
+		}
+		if (request)
+		{
+			ActivityCompat.requestPermissions(this, perms, ALL_REQ_CODE);
+		}
+
+	}
+
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		if (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-		{
-			ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, GPS_REQ_CODE);
-		}
+		requestPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE);
 
+		if (!SAVE_DIR.exists())
+		{
+			if (!SAVE_DIR.mkdirs())
+			{
+				throw new RuntimeException("Failed to create dir " + SAVE_DIR.toString());
+			}
+		}
 		setContentView(R.layout.activity_main);
 		Toolbar toolbar = findViewById(R.id.toolbar);
 		setSupportActionBar(toolbar);
 
+	}
+
+	@Override
+	protected void onDestroy()
+	{
+		super.onDestroy();
+		Log.i(TAG, "On destroy called");
 	}
 
 	@Override
@@ -66,18 +104,17 @@ public class MainActivity extends AppCompatActivity
 		return super.onOptionsItemSelected(item);
 	}
 
-	public static final int GPS_REQ_CODE = 0;
-	public static final String TAG = "dominos";
 
 	@Override
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
 	{
-		if (requestCode == GPS_REQ_CODE)
+		if (requestCode != ALL_REQ_CODE) throw new RuntimeException("Unknown req code: " + requestCode);
+		for (int i = 0; i < permissions.length; i++)
 		{
-			if (grantResults[0] != PackageManager.PERMISSION_GRANTED)
+			if (grantResults[i] != PackageManager.PERMISSION_GRANTED)
 			{
-				Toast.makeText(this, "You must accept the permissions", Toast.LENGTH_SHORT).show();
-				Log.i(TAG, "Could not get permissions. Quitting application");
+				Toast.makeText(this, "You must accept the " + permissions[i] +" permission", Toast.LENGTH_LONG).show();
+				Log.i(TAG, "Could not get " + permissions[i] + "permission. Quitting application");
 				stopService(new Intent(getBaseContext(), GPSTracker.class));
 				finish();
 			}

@@ -1,2 +1,2 @@
-include ':app'
+include ':app', ':KryoTest', ':Core'
 rootProject.name='Dominos Stats'
